@@ -1,117 +1,238 @@
-import React, { useState } from "react";
+"use client";
 
-// Define the shape of the certificate object
+import React, { useState, useEffect } from "react";
+import SceneBox from "@/components/SceneBox";
+import { useRouter } from "next/navigation";
+
 interface Membership {
   international: boolean;
   associations: string[];
 }
-
-// Define the shape of the main JSON state
-interface MainJson {
-  memberships: Membership[];
+interface Doctor {
+  name: string;
+  mobile: string;
+  photo: string;
+  credentials: string;
+  designation: string;
+  hospitalName: string;
+  hospitalAddress: string;
+  location: string;
+  gender: string;
 }
 
-// Define the props for the CertificationsForm component
-interface MembershipFormProps {
-  setMainJson: React.Dispatch<React.SetStateAction<MainJson>>;
-  mainJson: MainJson;
-}
-
-const MembershipForm: React.FC<MembershipFormProps> = () => {
-  const [mainJson, setMainJson] = useState({
-    internation: false,
-    associations: [],
+const MembershipForm: React.FC = () => {
+  const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [doctorHashId, setDoctorHashId] = useState<string | null>(null);
+  const [employeeHashId, setEmployeeHashId] = useState<string | null>(null);
+  const router = useRouter();
+  const [doctor, setDoctor] = useState<Doctor>({
+    name: "",
+    mobile: "",
+    photo: "",
+    credentials: "",
+    designation: "",
+    hospitalName: "",
+    hospitalAddress: "",
+    location: "",
+    gender: "",
   });
+
+  useEffect(() => {
+    const doctorHash = localStorage.getItem("doctorHash");
+    const employeeHash = localStorage.getItem("EmployeeHash");
+
+    setDoctorHashId(doctorHash);
+    setEmployeeHashId(employeeHash);
+    if (doctorHash) {
+      fetch(
+        `https://pixpro.app/api/employee/${employeeHash}/contact/${doctorHash}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: doctorHash,
+            name: "Rohan Sakhale",
+            mobile: "8976379661",
+            data: { doctor: [] },
+          }),
+        }
+      )
+        .then((response) => response.json())
+        .then((data) => {
+          if (data && data.data) {
+            console.log(data);
+            // setDoctor(data.data.doctor[0]);
+          }
+        })
+        .catch((error) => console.error("Error fetching doctor data:", error));
+    }
+  }, []);
+
   const addMembership = () => {
-    const newMembership: Membership = {
-      international: false,
-      associations: [],
-    };
-    setMainJson({
-      ...mainJson,
-      memberships: [...mainJson.memberships, newMembership],
-    });
+    setMemberships([
+      ...memberships,
+      { international: false, associations: [] },
+    ]);
   };
 
-  const handleMembershipChange = (
+  const addAssociation = (index: number) => {
+    const updatedMemberships = memberships.map((membership, memIndex) => {
+      if (index === memIndex) {
+        return {
+          ...membership,
+          associations: [...membership.associations, ""],
+        };
+      }
+      return membership;
+    });
+    setMemberships(updatedMemberships);
+  };
+
+  const handleInternationalChange = (index: number, value: boolean) => {
+    const updatedMemberships = memberships.map((membership, memIndex) => {
+      if (memIndex === index) {
+        return { ...membership, international: value };
+      }
+      return membership;
+    });
+    setMemberships(updatedMemberships);
+  };
+
+  const handleAssociationChange = (
     index: number,
-    field: keyof Membership,
+    assocIndex: number,
     value: string
   ) => {
-    const updatedMemberships = mainJson.memberships.map(
-      (membership, memIndex) => {
-        if (index === memIndex) {
-          return { ...membership, [field]: value };
-        }
-        return membership;
+    const updatedMemberships = memberships.map((membership, memIndex) => {
+      if (memIndex === index) {
+        const newAssociations = [...membership.associations];
+        newAssociations[assocIndex] = value;
+        return { ...membership, associations: newAssociations };
       }
-    );
-    setMainJson({ ...mainJson, memberships: updatedMemberships });
+      return membership;
+    });
+    setMemberships(updatedMemberships);
   };
 
   const removeMembership = (index: number) => {
-    setMainJson({
-      ...mainJson,
-      memberships: mainJson.memberships.filter(
-        (_, memIndex) => memIndex !== index
-      ),
-    });
+    setMemberships(memberships.filter((_, memIndex) => memIndex !== index));
   };
 
+  const removeAssociation = (index: number, assocIdx: number) => {
+    const updatedMemberships = memberships.map((membership, memIndex) => {
+      if (memIndex === index) {
+        return {
+          ...membership,
+          associations: membership.associations.filter(
+            (_, idx) => idx !== assocIdx
+          ),
+        };
+      }
+      return membership;
+    });
+    setMemberships(updatedMemberships);
+  };
+
+  const handleSubmit = async () => {
+    if (!doctorHashId) {
+      console.error("No doctor hash ID found");
+      return;
+    }
+    const apiUrl = `https://pixpro.app/api/employee/${employeeHashId}/contact/${doctorHashId}`;
+    const bodyData = {
+      id: doctorHashId,
+      name: doctor.name,
+      mobile: doctor.mobile,
+      data: {
+        memberships: memberships,
+      },
+    };
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bodyData),
+      });
+      const responseData = await response.json();
+      console.log("data", responseData);
+      // router.push(`/doctor/${doctorHashId}/membership`);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
+  };
+
+  console.log(memberships);
   return (
-    <div className="px-2 pt-6 pb-8 mb-4">
-      <button
-        onClick={addMembership}
-        className="w-fit text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-      >
-        Add Membership
-      </button>
-      {mainJson.memberships.map((mem, index) => (
-        <div className="mt-6" key={index}>
-          <div className="flex justify-between items-center bg-gray-100 py-2 px-4">
-            <div className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-              Add new membership
+    <SceneBox>
+      <div className="pt-6 pb-8 mb-4">
+        <button
+          onClick={addMembership}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Add Membership
+        </button>
+        {memberships.map((membership, index) => (
+          <div key={index} className="mt-4 bg-gray-100 p-2 rounded-md relative">
+            <div className="flex space-x-2">
+              <input
+                type="checkbox"
+                checked={membership.international}
+                onChange={(e) =>
+                  handleInternationalChange(index, e.target.checked)
+                }
+              />{" "}
+              <p>International</p>
             </div>
-            <button
-              onClick={() => removeMembership(index)}
-              className="text-red-500 hover:text-red-700 text-3xl dark:hover:text-red-500"
-            >
-              &times;
-            </button>
-          </div>
-          <form className="flex flex-wrap">
-            {Object.keys(mem).map((key) => (
-              <div key={key} className="w-full lg:w-1/4 lg:ml-4 mt-3">
-                <label
-                  htmlFor={`${key}-${index}`}
-                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                >
-                  {key
-                    .replace("_", " ")
-                    .replace(/\b\w/g, (l) => l.toUpperCase())}
-                </label>
+            {membership.associations.map((association, assocIdx) => (
+              <div key={assocIdx} className="mt-4">
+                <div className="flex justify-between w-full">
+                  <label htmlFor={`${index}-${assocIdx}`}>{`Enter association ${
+                    assocIdx + 1
+                  }`}</label>
+                  <button
+                    onClick={() => removeAssociation(index, assocIdx)}
+                    className="text-red-500"
+                  >
+                    Remove
+                  </button>
+                </div>
                 <input
-                  id={`${key}-${index}`}
-                  className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   type="text"
-                  placeholder={key
-                    .replace("_", " ")
-                    .replace(/\b\w/g, (l) => l.toUpperCase())}
-                  value={mem[key as keyof Membership]}
+                  value={association}
+                  id={`${index}-${assocIdx}`}
+                  className="bg-gray-50 border mt-1 border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   onChange={(e) =>
-                    handleMembershipChange(
-                      index,
-                      key as keyof Membership,
-                      e.target.value
-                    )
+                    handleAssociationChange(index, assocIdx, e.target.value)
                   }
                 />
               </div>
             ))}
-          </form>
-        </div>
-      ))}
-    </div>
+            <button
+              onClick={() => addAssociation(index)}
+              className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-2"
+            >
+              Add Association
+            </button>
+            <button
+              onClick={() => removeMembership(index)}
+              className="text-red-500 absolute -top-2 -right-1"
+            >
+              ❌
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={handleSubmit}
+          className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
+        >
+          Next
+        </button>
+      </div>
+    </SceneBox>
   );
 };
 

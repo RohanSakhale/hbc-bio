@@ -2,11 +2,13 @@
 
 import React, { useRef, useState } from "react";
 import ImageCropper from "@/components/ImageCropper";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const AddNewDoctor: React.FC = () => {
   const [doctor, setDoctor] = useState({
     name: "",
-    mobile:"",
+    mobile: "",
     photo: "",
     credentials: "",
     designation: "",
@@ -16,30 +18,30 @@ const AddNewDoctor: React.FC = () => {
     gender: "",
   });
   const employeeHash = localStorage.getItem("EmployeeHash");
-  console.log(employeeHash);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const router = useRouter();
   const handleChange = (field: keyof typeof doctor, value: string) => {
     setDoctor({ ...doctor, [field]: value });
   };
 
+  // Handle image cropping
   const handleImageCrop = (croppedImageUrl: string) => {
-    setDoctor((prev) => ({ ...prev, Photo: croppedImageUrl }));
+    setDoctor((prev) => ({ ...prev, photo: croppedImageUrl }));
   };
 
+  // Trigger file input click
   const triggerFileSelectPopup = () => {
     fileInputRef.current?.click();
   };
-console.log(doctor)
+
   const handleSubmit = async () => {
     const apiUrl = `https://pixpro.app/api/employee/${employeeHash}/contact/save`;
-    console.log(doctor)
     const bodyData = {
       id: null,
-      name:doctor.name,
+      name: doctor.name,
       mobile: doctor.mobile,
       data: {
-        doctor: [doctor], // Send the entire doctor object as an array item
+        doctor: [doctor],
       },
     };
 
@@ -51,17 +53,12 @@ console.log(doctor)
         },
         body: JSON.stringify(bodyData),
       });
-
       const responseData = await response.json();
-      console.log("Response from API:", responseData);
 
       // Check if the API call was successful and the response contains the hash
       if (response.ok && responseData.contact && responseData.contact.hash) {
         localStorage.setItem("doctorHash", responseData.contact.hash);
-        console.log(
-          "Hash ID saved to localStorage:",
-          responseData.contact.hash
-        );
+        router.push(`/doctor/${responseData.contact.hash}/personal`);
       } else {
         console.error("Failed to retrieve hash from API response");
       }
@@ -73,7 +70,7 @@ console.log(doctor)
   return (
     <div className="px-2 pt-6 pb-8 mb-4">
       <div className="mb-4">
-        <h2 className="text-2xl font-bold mb-2">Doctor's Profile</h2>
+        <h2 className="text-2xl font-bold mb-2">Doctor Profile</h2>
         <hr />
       </div>
       <div className="flex flex-wrap">
@@ -85,11 +82,23 @@ console.log(doctor)
             className="w-24 h-24 rounded-full overflow-hidden cursor-pointer"
             onClick={triggerFileSelectPopup}
           >
-            <img
-              src={doctor.photo}
-              alt="Doctor's Profile"
-              className="w-full h-full object-cover object-center"
-            />
+            {doctor.photo ? (
+              <Image
+                src={doctor.photo}
+                alt="Doctor's Profile"
+                objectFit="cover"
+                width={100}
+                height={100}
+              />
+            ) : (
+              <Image
+                src="https://via.placeholder.com/150"
+                alt="Placeholder"
+                className="w-full h-full object-cover object-center"
+                width={100}
+                height={100}
+              />
+            )}
           </div>
           <ImageCropper onCrop={handleImageCrop} />
         </div>
@@ -173,7 +182,7 @@ console.log(doctor)
       </div>
       <button
         onClick={handleSubmit}
-        className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
+        className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2 w-full"
       >
         Save and next
       </button>

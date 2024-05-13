@@ -5,23 +5,8 @@ import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { SyncLoader } from "react-spinners";
 
-interface LoginProps {
-  loginTheme: {
-    title: string;
-    desc: string;
-    loginLogo: string;
-    idHeading: string;
-    passwordHeading: string;
-    signInButtonHeading: string;
-    idPlaceholder: string;
-  };
-  banners: {
-    topBanner: string;
-    bottomBanner: string;
-  };
-}
 
-const Login: React.FC<{ data: LoginProps }> = () => {
+const Login = () => {
   const [projectHash, setProjectHash] = useState("9jnxxjnp");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);

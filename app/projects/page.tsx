@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
+import Image from "next/image";
 
 interface DoctorDetails {
   hash: string;
@@ -68,10 +69,12 @@ const Projects = () => {
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold text-orange-600">Welcome!</h1>
             <button>
-              <img
+              <Image
                 src="/logout.png"
                 alt="logout-button"
-                className="w-8 h-8 z-50"
+                className=" z-50"
+              width={40}
+              height={40}
               />
             </button>
           </div>

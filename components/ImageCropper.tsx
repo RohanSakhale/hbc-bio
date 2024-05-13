@@ -27,7 +27,8 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ onCrop }) => {
 
   const getCropData = () => {
     if (cropperRef.current) {
-      const cropper = cropperRef.current.cropper;
+      const cropper = cropperRef.current;
+      
       if (cropper) {
         // Checking if cropper instance is available
         const croppedImageUrl = cropper.getCroppedCanvas().toDataURL();
@@ -42,7 +43,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ onCrop }) => {
     console.log("Cropping cancelled");
     setIsVisible(false);
   };
-
+// @ts-ignore
   return (
     <div>
       <input type="file" accept="image/*" className="mt-3" onChange={onFileChange} />
@@ -54,6 +55,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ onCrop }) => {
               style={{ height: 400, width: 400 }}
               aspectRatio={1}
               guides={false}
+              // @ts-ignore
               ref={cropperRef}
               viewMode={1}
               responsive={true}

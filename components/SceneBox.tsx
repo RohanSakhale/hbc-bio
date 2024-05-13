@@ -27,7 +27,7 @@ const SceneBox: React.FC<SceneBoxProps> = ({ children }) => {
     if (activeIndex > 0 && activeIndex < pathSegments.length) {
       setActiveForm(pathSegments[activeIndex]);
     }
-  }, [location, doctorHash]);
+  }, [doctorHash]);
 
   return (
     <div className="bg-gray-100 p-4 shadow-md border">

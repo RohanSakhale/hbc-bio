@@ -2,9 +2,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import ImageCropper from "@/components/ImageCropper";
 import SceneBox from "@/components/SceneBox";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface Doctor {
   name: string;
+  mobile: string;
   photo: string;
   credentials: string;
   designation: string;
@@ -17,6 +20,7 @@ interface Doctor {
 const DoctorProfileForm: React.FC = () => {
   const [doctor, setDoctor] = useState<Doctor>({
     name: "",
+    mobile: "",
     photo: "",
     credentials: "",
     designation: "",
@@ -27,20 +31,25 @@ const DoctorProfileForm: React.FC = () => {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [doctorHashId, setDoctorHashId] = useState<string | null>(null);
+  const [employeeHashId, setEmployeeHashId] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    const doctorHashId = localStorage.getItem("doctorHash");
-    setDoctorHashId(doctorHashId);
-    if (doctorHashId) {
+    const doctorHash = localStorage.getItem("doctorHash");
+    const employeeHash = localStorage.getItem("EmployeeHash");
+
+    setDoctorHashId(doctorHash);
+    setEmployeeHashId(employeeHash);
+    if (doctorHash) {
       fetch(
-        `https://pixpro.app/api/employee/pnr7x42z/contact/${doctorHashId}`,
+        `https://pixpro.app/api/employee/${employeeHash}/contact/${doctorHash}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            id: doctorHashId,
+            id: doctorHash,
             name: "Rohan Sakhale",
             mobile: "8976379661",
             data: { doctor: [] },
@@ -49,9 +58,8 @@ const DoctorProfileForm: React.FC = () => {
       )
         .then((response) => response.json())
         .then((data) => {
-          console.log("Full API Response:", data.data);
           if (data && data.data) {
-            setDoctor(data.data.doctor[0][0]);
+            setDoctor(data.data.doctor[0]);
           }
         })
         .catch((error) => console.error("Error fetching doctor data:", error));
@@ -71,24 +79,19 @@ const DoctorProfileForm: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    console.log(doctorHashId)
-    console.log(doctor)
     if (!doctorHashId) {
       console.error("No doctor hash ID found");
-      return; // Early exit if no hash ID is found
+      return;
     }
-
-    const apiUrl = `https://pixpro.app/api/employee/pnr7x42z/contact/${doctorHashId}`;
-
+    const apiUrl = `https://pixpro.app/api/employee/${employeeHashId}/contact/${doctorHashId}`;
     const bodyData = {
       id: doctorHashId,
-      name: "Rohan Sakhale",
-      mobile: "8976379661",
+      name: doctor.name,
+      mobile: doctor.mobile,
       data: {
-        doctor:doctor,
+        doctor: doctor,
       },
     };
-
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -97,18 +100,18 @@ const DoctorProfileForm: React.FC = () => {
         },
         body: JSON.stringify(bodyData),
       });
-
       const responseData = await response.json();
-      console.log("Response from mainAPI:", responseData);
+      router.push(`/doctor/${doctorHashId}/membership`);
     } catch (error) {
       console.error("Error submitting form:", error);
     }
   };
+
   return (
     <SceneBox>
       <div className="px-2 pt-6 pb-8 mb-4">
         <div className="mb-4">
-          <h2 className="text-2xl font-bold mb-2">Doctor's Profile</h2>
+          <h2 className="text-2xl font-bold mb-2">Doctors Profile</h2>
           <hr />
         </div>
         <div className="flex flex-wrap">
@@ -120,10 +123,12 @@ const DoctorProfileForm: React.FC = () => {
               className="w-24 h-24 rounded-full overflow-hidden cursor-pointer"
               onClick={triggerFileSelectPopup}
             >
-              <img
+              <Image
                 src={doctor.photo || "https://via.placeholder.com/150"}
                 alt="Doctor's Profile"
                 className="w-full h-full object-cover object-center"
+                width={300}
+                height={300}
               />
             </div>
             <ImageCropper onCrop={handleImageCrop} />
