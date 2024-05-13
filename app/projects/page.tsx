@@ -73,8 +73,8 @@ const Projects = () => {
                 src="/logout.png"
                 alt="logout-button"
                 className=" z-50"
-              width={40}
-              height={40}
+                width={40}
+                height={40}
               />
             </button>
           </div>
@@ -133,9 +133,10 @@ const Projects = () => {
                     ) : (
                       <button
                         className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                        onClick={() =>
-                          router.push(`/doctor/${doctor.hash}/personal`)
-                        }
+                        onClick={() => {
+                          localStorage.setItem("doctorHash", doctor.hash);
+                          router.push(`/doctor/${doctor.hash}/personal`);
+                        }}
                       >
                         Edit
                       </button>

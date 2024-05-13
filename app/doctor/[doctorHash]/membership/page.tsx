@@ -132,7 +132,7 @@ const MembershipForm: React.FC = () => {
         >
           Add Membership
         </button>
-        {data?.memberships.map((membership: Membership, index: number) => (
+        {(data?.memberships || []).map((membership: Membership, index: number) => (
           <div key={index} className="mt-4 bg-gray-100 p-2 rounded-md relative">
             <div className="flex space-x-2">
               <input
@@ -202,7 +202,7 @@ const MembershipForm: React.FC = () => {
             }}
             className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
           >
-            {data?.memberships.length === 0 ? "Skip" : "Next"}
+            {(data?.memberships || []).length === 0 ? "Skip" : "Next"}
           </button>
         </div>
       </div>
@@ -211,3 +211,13 @@ const MembershipForm: React.FC = () => {
 };
 
 export default MembershipForm;
+
+
+
+
+// const specialtyData = responseData.data.find(
+//   (item: any) => item.specialty
+// );
+// if (specialtyData) {
+//   setSpecializations(specialtyData.specialty);
+// }

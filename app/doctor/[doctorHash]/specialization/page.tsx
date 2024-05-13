@@ -1,9 +1,8 @@
-
 "use client";
-
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // Correct import for useRouter
-import SceneBox from '@/components/SceneBox'; // Ensure this path matches your project structure
+import React, { useState, useEffect } from "react";
+import SceneBox from "@/components/SceneBox";
+import { useRouter } from "next/navigation";
+import ImageCropper from "@/components/ImageCropper";
 
 interface Instrument {
   name: string;
@@ -22,52 +21,132 @@ const SpecializationForm: React.FC = () => {
   const [specializations, setSpecializations] = useState<Specialization[]>([]);
   const [doctorHashId, setDoctorHashId] = useState<string | null>(null);
   const [employeeHashId, setEmployeeHashId] = useState<string | null>(null);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
+  const [cropperOpen, setCropperOpen] = useState<number | null>(null); // State to track which cropper is open
   const router = useRouter();
+  const [responseData, setResponseData] = useState<any>({
+    contact: {},
+    data: [],
+  });
 
   useEffect(() => {
-    const doctorHash = localStorage.getItem('doctorHash');
-    const employeeHash = localStorage.getItem('EmployeeHash');
-    
+    const doctorHash = localStorage.getItem("doctorHash");
+    const employeeHash = localStorage.getItem("EmployeeHash");
     setDoctorHashId(doctorHash);
     setEmployeeHashId(employeeHash);
 
-    if (doctorHash && employeeHash) {
-      const apiUrl = `https://pixpro.app/api/employee/${employeeHash}/contact/${doctorHash}/specializations`;
-      fetch(apiUrl)
-        .then(response => response.json())
-        .then(data => {
-          if (data && data.specializations) {
-            setSpecializations(data.specializations);
+    if (doctorHash) {
+      fetch(
+        `https://pixpro.app/api/employee/${employeeHash}/contact/${doctorHash}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: doctorHash,
+            data: [],
+          }),
+        }
+      )
+        .then((response) => response.json())
+        .then((responseData) => {
+          if (responseData) {
+            localStorage.setItem("dump", responseData);
+            setResponseData(responseData); // Update the state with the entire response data
+          } else {
+            console.error("No response data received.");
           }
         })
-        .catch(error => console.error('Error fetching specialization data:', error));
+        .catch((error) => console.error("Error fetching doctor data:", error));
     }
   }, []);
 
   const addSpecialization = () => {
-    const newSpecialization: Specialization = {
-      image: "",
-      hospital_address: "",
-      treatment_options: [],
-      therapy: "",
-      instruments: []
-    };
-    setSpecializations([...specializations, newSpecialization]);
+    // Check if specialization data already exists in responseData
+    const existingSpecialization = responseData.data.specializations;
+
+    if (existingSpecialization) {
+      // If specialization data exists, create a new instance and update it
+      const updatedData = { ...responseData };
+      const newSpecialization: Specialization = {
+        image: "",
+        hospital_address: "",
+        treatment_options: [],
+        therapy: "",
+        instruments: [],
+      };
+      updatedData.data.specializations.push(newSpecialization);
+      setResponseData(updatedData);
+    } else {
+      // If specialization data doesn't exist, add a new specialization instance
+      const newSpecialization: Specialization = {
+        image: "",
+        hospital_address: "",
+        treatment_options: [],
+        therapy: "",
+        instruments: [],
+      };
+      const newData = {
+        ...responseData,
+        data: { ...responseData.data, specializations: [newSpecialization] },
+      };
+      setResponseData(newData);
+    }
   };
 
   const removeSpecialization = (index: number) => {
-    const updatedSpecializations = specializations.filter((_, i) => i !== index);
-    setSpecializations(updatedSpecializations);
+    const updatedData = { ...responseData };
+    updatedData.data.specializations.splice(index, 1);
+    setResponseData(updatedData);
   };
 
-  const handleSpecializationChange = (index: number, field: keyof Specialization, value: any) => {
-    const updatedSpecializations = specializations.map((spec, i) => {
-      if (i === index) {
-        return { ...spec, [field]: value };
-      }
-      return spec;
+  const handleSpecializationChange = (
+    index: number,
+    field: keyof Specialization,
+    value: any
+  ) => {
+    const updatedData = { ...responseData };
+    updatedData.data.specializations[index][field] = value;
+    setResponseData(updatedData);
+  };
+
+  const addInstrument = (specIndex: number) => {
+    const updatedData = { ...responseData };
+    updatedData.data.specializations[specIndex].instruments.push({
+      name: "",
+      image: "",
     });
-    setSpecializations(updatedSpecializations);
+    setResponseData(updatedData);
+  };
+
+  const removeInstrument = (specIndex: number, instrumentIndex: number) => {
+    const updatedData = { ...responseData };
+    updatedData.data.specializations[specIndex].instruments.splice(
+      instrumentIndex,
+      1
+    );
+    setResponseData(updatedData);
+  };
+
+  const handleInstrumentChange = (
+    specIndex: number,
+    instrumentIndex: number,
+    field: keyof Instrument,
+    value: any
+  ) => {
+    const updatedData = { ...responseData };
+    updatedData.data.specializations[specIndex].instruments[instrumentIndex][
+      field
+    ] = value;
+    setResponseData(updatedData);
+  };
+
+  const handleImageCrop = (croppedImageUrl: string, specIndex: number) => {
+    const updatedData = { ...responseData };
+    updatedData.data.specializations[specIndex].image = croppedImageUrl;
+    setResponseData(updatedData);
+    setCropperOpen(null); // Close the cropper after cropping
   };
 
   const handleSubmit = async () => {
@@ -75,14 +154,20 @@ const SpecializationForm: React.FC = () => {
       console.error("Doctor or Employee Hash ID not found");
       return;
     }
-    const apiUrl = `https://pixpro.app/api/employee/${employeeHashId}/contact/${doctorHashId}/specializations`;
+
+    console.log(responseData.data)
+
+    const apiUrl = `https://pixpro.app/api/employee/${employeeHashId}/contact/save`;
     try {
       await fetch(apiUrl, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ specializations })
+        body: JSON.stringify({
+            id: doctorHashId,
+            data: [responseData.data],
+          }),
       });
       console.log("Specializations updated successfully.");
     } catch (error) {
@@ -90,16 +175,225 @@ const SpecializationForm: React.FC = () => {
     }
   };
 
+
+
   return (
     <SceneBox>
-      <button onClick={addSpecialization} className="add-btn">Add Specialization</button>
-      {specializations.map((spec, index) => (
-        <div key={index}>
-          {/* Display and edit fields for each specialization */}
-          <button onClick={() => removeSpecialization(index)}>Remove</button>
+      <div className="flex flex-col pt-6 pb-8 mb-4">
+        <button
+          onClick={addSpecialization}
+          className="w-fit text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+        >
+          Add Specialization
+        </button>
+        {responseData.data?.specializations &&
+          responseData.data.specializations.map((spec, specIndex) => (
+            <div
+              key={specIndex}
+              className="mt-4 bg-gray-100 p-2 rounded-md relative"
+            >
+              <button
+                onClick={() => removeSpecialization(specIndex)}
+                className="text-red-500 absolute -top-2 -right-1"
+              >
+                ❌
+              </button>
+              <div className="mt-4">
+                <label htmlFor={`spec-${specIndex}-image`}>Image</label>
+                <div
+                  className="w-24 h-24 rounded-full overflow-hidden cursor-pointer"
+                  onClick={() => setCropperOpen(specIndex)}
+                >
+                  {spec.image ? (
+                    <img
+                      src={spec.image}
+                      alt="Specialization Image"
+                      className="w-full h-full object-cover object-center"
+                    />
+                  ) : (
+                    <img
+                      src="https://via.placeholder.com/150"
+                      alt="Placeholder"
+                      className="w-full h-full object-cover object-center"
+                    />
+                  )}
+                </div>
+                {cropperOpen === specIndex && (
+                  <ImageCropper
+                    key={`spec-${specIndex}-image`}
+                    onCrop={(croppedImageUrl) =>
+                      handleImageCrop(croppedImageUrl, specIndex)
+                    }
+                  />
+                )}
+                <input
+                  type="file"
+                  id={`spec-${specIndex}-image`}
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        setCropperOpen(specIndex);
+                        setCroppedImage(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </div>
+              <div className="mt-4">
+                <label htmlFor={`spec-${specIndex}-hospital-address`}>
+                  Hospital Address
+                </label>
+                <input
+                  type="text"
+                  id={`spec-${specIndex}-hospital-address`}
+                  value={spec.hospital_address}
+                  onChange={(e) =>
+                    handleSpecializationChange(
+                      specIndex,
+                      "hospital_address",
+                      e.target.value
+                    )
+                  }
+                  className="bg-gray-50 border mt-1 border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                />
+              </div>
+              <div className="mt-4">
+                <label htmlFor={`spec-${specIndex}-therapy`}>Therapy</label>
+                <input
+                  type="text"
+                  id={`spec-${specIndex}-therapy`}
+                  value={spec.therapy}
+                  onChange={(e) =>
+                    handleSpecializationChange(
+                      specIndex,
+                      "therapy",
+                      e.target.value
+                    )
+                  }
+                  className="bg-gray-50 border mt-1 border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                />
+              </div>
+              <div className="mt-4">
+                <label>Treatment Options</label>
+                {spec.treatment_options.map((option, optionIndex) => (
+                  <div key={optionIndex}>
+                    <input
+                      type="text"
+                      value={option}
+                      onChange={(e) => {
+                        const updatedOptions = [...spec.treatment_options];
+                        updatedOptions[optionIndex] = e.target.value;
+                        handleSpecializationChange(
+                          specIndex,
+                          "treatment_options",
+                          updatedOptions
+                        );
+                      }}
+                      className="bg-gray-50 border mt-1 border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    const updatedOptions = [...spec.treatment_options, ""];
+                    handleSpecializationChange(
+                      specIndex,
+                      "treatment_options",
+                      updatedOptions
+                    );
+                  }}
+                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-2"
+                >
+                  Add Treatment Option
+                </button>
+              </div>
+              <div className="mt-4">
+                <label>Instruments</label>
+                {spec.instruments.map((instrument, instrumentIndex) => (
+                  <div key={instrumentIndex} className="mt-2">
+                    <input
+                      type="text"
+                      value={instrument.name}
+                      onChange={(e) =>
+                        handleInstrumentChange(
+                          specIndex,
+                          instrumentIndex,
+                          "name",
+                          e.target.value
+                        )
+                      }
+                      className="bg-gray-50 border mt-1 border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    />
+                    <input
+                      type="file"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            handleInstrumentChange(
+                              specIndex,
+                              instrumentIndex,
+                              "image",
+                              reader.result as string
+                            );
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="bg-gray-50 border mt-1 border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    />
+                    <button
+                      onClick={() =>
+                        removeInstrument(specIndex, instrumentIndex)
+                      }
+                      className="text-red-500 mt-1"
+                    >
+                      Remove Instrument
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={() => addInstrument(specIndex)}
+                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-2"
+                >
+                  Add Instrument
+                </button>
+              </div>
+            </div>
+          ))}
+
+        <hr className="my-4" />
+        <div className="flex justify-between items-center">
+          <button
+            onClick={async () => {
+              await handleSubmit();
+              router.push(`/doctor/${doctorHashId}/certification`);
+            }}
+            className="bg-red-500 rounded-md mt-6 text-white text-xl px-4 py-2"
+          >
+            Back
+          </button>
+          <button
+            onClick={async () => {
+              await handleSubmit();
+            //   router.push(`/doctor/${doctorHashId}/personal`);
+            }}
+            className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
+          >
+            {specializations.length === 0 ? "Skip" : "Next"}
+          </button>
         </div>
-      ))}
-      <button onClick={handleSubmit} className="submit-btn">Save Specializations</button>
+      </div>
     </SceneBox>
   );
 };
