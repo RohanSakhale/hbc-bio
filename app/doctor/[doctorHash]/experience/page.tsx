@@ -126,7 +126,7 @@ const ExperienceForm: React.FC = () => {
     <SceneBox>
       <div>
         <div className="text-xl font-bold bg-gray-100 py-2 px-4 text-center leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-          Doctor's Experience
+          Doctor Experience
         </div>
         <form className="flex flex-wrap p-4">
           <div className="w-full lg:w-1/4 lg:ml-4 mt-3">
