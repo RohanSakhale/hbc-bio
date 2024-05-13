@@ -163,8 +163,8 @@ const EducationForm = () => {
         <hr className="my-4" />
         <div className="flex justify-between items-center">
           <button
-            onClick={() => {
-              handleSubmit;
+            onClick={async () => {
+              await handleSubmit();
               router.push(`/doctor/${doctorHashId}/personal`);
             }}
             className="bg-red-500 rounded-md mt-6 text-white text-xl px-4 py-2"
@@ -172,8 +172,8 @@ const EducationForm = () => {
             back
           </button>
           <button
-            onClick={() => {
-              handleSubmit;
+            onClick={async () => {
+              await handleSubmit();
               router.push(`/doctor/${doctorHashId}/experience`);
             }}
             className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"

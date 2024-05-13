@@ -225,20 +225,20 @@ const MembershipForm: React.FC = () => {
             </button>
           </div>
         ))}
-         <hr className="my-4" />
+        <hr className="my-4" />
         <div className="flex justify-between items-center">
           <button
-            onClick={() => {
-              handleSubmit;
-              router.push(`/doctor/${doctorHashId}/certificate`);
+            onClick={async () => {
+              await handleSubmit();
+              router.push(`/doctor/${doctorHashId}/certification`);
             }}
             className="bg-red-500 rounded-md mt-6 text-white text-xl px-4 py-2"
           >
             back
           </button>
           <button
-            onClick={() => {
-              handleSubmit;
+            onClick={async () => {
+              await handleSubmit();
               router.push(`/doctor/${doctorHashId}/personal`);
             }}
             className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"

@@ -201,7 +201,10 @@ const DoctorProfileForm: React.FC = () => {
           </div>
         </div>
         <button
-          onClick={handleSubmit}
+          onClick={async () => {
+            await handleSubmit();
+            router.push(`/doctor/${doctorHashId}/education`);
+          }}
           className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
         >
           Next

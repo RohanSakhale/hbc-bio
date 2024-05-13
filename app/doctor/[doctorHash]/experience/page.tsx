@@ -199,8 +199,8 @@ const ExperienceForm: React.FC = () => {
         <hr className="my-4" />
         <div className="flex justify-between items-center">
           <button
-            onClick={() => {
-              handleSubmit;
+            onClick={async () => {
+              await handleSubmit();
               router.push(`/doctor/${doctorHashId}/education`);
             }}
             className="bg-red-500 rounded-md mt-6 text-white text-xl px-4 py-2"
@@ -208,9 +208,9 @@ const ExperienceForm: React.FC = () => {
             back
           </button>
           <button
-            onClick={() => {
-              handleSubmit;
-              router.push(`/doctor/${doctorHashId}/certificate`);
+            onClick={async () => {
+              await handleSubmit();
+              router.push(`/doctor/${doctorHashId}/certification`);
             }}
             className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
           >
