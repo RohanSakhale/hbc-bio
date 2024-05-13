@@ -62,8 +62,7 @@ const MembershipForm: React.FC = () => {
         .then((response) => response.json())
         .then((data) => {
           if (data && data.data) {
-            console.log(data);
-            // setDoctor(data.data.doctor[0]);
+            setDoctor(data.data.doctor[0]);
           }
         })
         .catch((error) => console.error("Error fetching doctor data:", error));
@@ -135,19 +134,23 @@ const MembershipForm: React.FC = () => {
     setMemberships(updatedMemberships);
   };
 
+  const arrayData = {
+    doctor,
+    memberships,
+  };
+
   const handleSubmit = async () => {
     if (!doctorHashId) {
       console.error("No doctor hash ID found");
       return;
     }
+
     const apiUrl = `https://pixpro.app/api/employee/${employeeHashId}/contact/${doctorHashId}`;
     const bodyData = {
       id: doctorHashId,
       name: doctor.name,
       mobile: doctor.mobile,
-      data: {
-        memberships: memberships,
-      },
+      data: JSON.stringify(arrayData),
     };
     try {
       const response = await fetch(apiUrl, {
@@ -158,20 +161,17 @@ const MembershipForm: React.FC = () => {
         body: JSON.stringify(bodyData),
       });
       const responseData = await response.json();
-      console.log("data", responseData);
-      // router.push(`/doctor/${doctorHashId}/membership`);
+      localStorage.setItem("data", JSON.stringify(memberships));
     } catch (error) {
       console.error("Error submitting form:", error);
     }
   };
-
-  console.log(memberships);
   return (
     <SceneBox>
-      <div className="pt-6 pb-8 mb-4">
+      <div className="flex flex-col pt-6 pb-8 mb-4">
         <button
           onClick={addMembership}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          className="w-fit text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
         >
           Add Membership
         </button>
@@ -225,12 +225,27 @@ const MembershipForm: React.FC = () => {
             </button>
           </div>
         ))}
-        <button
-          onClick={handleSubmit}
-          className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
-        >
-          Next
-        </button>
+         <hr className="my-4" />
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => {
+              handleSubmit;
+              router.push(`/doctor/${doctorHashId}/certificate`);
+            }}
+            className="bg-red-500 rounded-md mt-6 text-white text-xl px-4 py-2"
+          >
+            back
+          </button>
+          <button
+            onClick={() => {
+              handleSubmit;
+              router.push(`/doctor/${doctorHashId}/personal`);
+            }}
+            className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
+          >
+            {memberships.length === 0 ? "Skip" : "Next"}
+          </button>
+        </div>
       </div>
     </SceneBox>
   );

@@ -101,7 +101,7 @@ const DoctorProfileForm: React.FC = () => {
         body: JSON.stringify(bodyData),
       });
       const responseData = await response.json();
-      router.push(`/doctor/${doctorHashId}/membership`);
+      router.push(`/doctor/${doctorHashId}/education`);
     } catch (error) {
       console.error("Error submitting form:", error);
     }

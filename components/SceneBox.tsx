@@ -30,7 +30,7 @@ const SceneBox: React.FC<SceneBoxProps> = ({ children }) => {
   }, [doctorHash]);
 
   return (
-    <div className="bg-gray-100 p-4 shadow-md border">
+    <div className="bg-gray-100 p-1 shadow-md border mt-4 mb-10">
       <h1 className="bg-orange-500 py-2 w-full rounded-lg text-white text-center text-lg">
         Scene Box
       </h1>
@@ -55,7 +55,8 @@ const SceneBox: React.FC<SceneBoxProps> = ({ children }) => {
           </Link>
         ))}
       </div>
-      <div>{children}</div>
+      <hr  className="mt-3 h-0.5 bg-black"/>
+      <div className="mt-6 bg-gray-50 rounded-lg shadow-md m-1 p-2">{children}</div>
     </div>
   );
 };

@@ -8,9 +8,9 @@ interface ImageCropperProps {
 }
 
 const ImageCropper: React.FC<ImageCropperProps> = ({ onCrop }) => {
-  const [image, setImage] = useState<string>(""); // Using string type for image URL
-  const [isVisible, setIsVisible] = useState<boolean>(false); // Using boolean type for visibility
-  const cropperRef = useRef<Cropper>(null); // Use generic to specify the type of ref
+  const [image, setImage] = useState<string>("");
+  const [isVisible, setIsVisible] = useState<boolean>(false);
+  const cropperRef = useRef<Cropper>(null);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -18,7 +18,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ onCrop }) => {
     if (files && files.length > 0) {
       const reader = new FileReader();
       reader.onload = () => {
-        setImage(reader.result as string); // Type assertion as string
+        setImage(reader.result as string);
         setIsVisible(true);
       };
       reader.readAsDataURL(files[0]);
@@ -27,12 +27,11 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ onCrop }) => {
 
   const getCropData = () => {
     if (cropperRef.current) {
-      const cropper = cropperRef.current;
-      
+      // @ts-ignore
+      const cropper = cropperRef.current.cropper;
+
       if (cropper) {
-        // Checking if cropper instance is available
         const croppedImageUrl = cropper.getCroppedCanvas().toDataURL();
-        console.log("Cropping image");
         onCrop(croppedImageUrl);
         setIsVisible(false);
       }
@@ -43,10 +42,15 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ onCrop }) => {
     console.log("Cropping cancelled");
     setIsVisible(false);
   };
-// @ts-ignore
+
   return (
     <div>
-      <input type="file" accept="image/*" className="mt-3" onChange={onFileChange} />
+      <input
+        type="file"
+        accept="image/*"
+        className="mt-3"
+        onChange={onFileChange}
+      />
       {isVisible && (
         <div className="fixed top-0 left-0 z-50 w-full h-full flex items-center justify-center bg-gray-500 bg-opacity-50">
           <div className="bg-white p-4">
