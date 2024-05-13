@@ -1,85 +1,92 @@
+import AddNewDoctor from "@/app/add-new/page";
+import SceneBox from "@/components/SceneBox";
 import React from "react";
 
 // Define the shape of the certificate object
-interface Membership {
-  international: boolean;
-  associations: string[];
+interface Certification {
+  CertificateName: string;
+  IssuingOrganization: string;
+  Year: string;
+  CertificateImage: string;
 }
 
 // Define the shape of the main JSON state
 interface MainJson {
-  memberships: Membership[];
+  certifications: Certification[];
 }
 
 // Define the props for the CertificationsForm component
-interface MembershipFormProps {
+interface CertificationsFormProps {
   setMainJson: React.Dispatch<React.SetStateAction<MainJson>>;
   mainJson: MainJson;
 }
 
-const MembershipForm: React.FC<MembershipFormProps> = ({
+const CertificationsForm: React.FC<CertificationsFormProps> = ({
   setMainJson,
   mainJson,
 }) => {
-  const addMembership = () => {
-    const newMembership: Membership = {
-      international: false,
-      associations:[],
+  const addCertifications = () => {
+    const newCertifications: Certification = {
+      CertificateName: "",
+      IssuingOrganization: "",
+      Year: "",
+      CertificateImage: "",
     };
     setMainJson({
       ...mainJson,
-      memberships: [...mainJson.memberships, newMembership],
+      certifications: [...mainJson.certifications, newCertifications],
     });
   };
 
-  const handleMembershipChange = (
+  const handleCertificationsChange = (
     index: number,
-    field: keyof Membership,
+    field: keyof Certification,
     value: string
   ) => {
-    const updatedMemberships = mainJson.memberships.map(
-      (membership, memIndex) => {
-        if (index === memIndex) {
-          return { ...membership, [field]: value };
+    const updatedCertifications = mainJson.certifications.map(
+      (certification, cerIndex) => {
+        if (index === cerIndex) {
+          return { ...certification, [field]: value };
         }
-        return membership;
+        return certification;
       }
     );
-    setMainJson({ ...mainJson, memberships: updatedMemberships });
+    setMainJson({ ...mainJson, certifications: updatedCertifications });
   };
 
-  const removeMembership = (index: number) => {
+  const removeCertifications = (index: number) => {
     setMainJson({
       ...mainJson,
-      memberships: mainJson.memberships.filter(
-        (_, memIndex) => memIndex !== index
+      certifications: mainJson.certifications.filter(
+        (_, cerIndex) => cerIndex !== index
       ),
     });
   };
 
   return (
+    <SceneBox >
     <div  className="px-2 pt-6 pb-8 mb-4">
       <button
-        onClick={addMembership}
+        onClick={addCertifications}
         className="w-fit text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
       >
-        Add Membership
+        Add Certifications
       </button>
-      {mainJson.memberships.map((mem, index) => (
+      {mainJson.certifications.map((cer, index) => (
         <div className="mt-6" key={index}>
           <div className="flex justify-between items-center bg-gray-100 py-2 px-4">
             <div className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-              Add new membership
+              Add new Certifications for doctor
             </div>
             <button
-              onClick={() => removeMembership(index)}
+              onClick={() => removeCertifications(index)}
               className="text-red-500 hover:text-red-700 text-3xl dark:hover:text-red-500"
             >
               &times;
             </button>
           </div>
           <form className="flex flex-wrap">
-            {Object.keys(mem).map((key) => (
+            {Object.keys(cer).map((key) => (
               <div key={key} className="w-full lg:w-1/4 lg:ml-4 mt-3">
                 <label
                   htmlFor={`${key}-${index}`}
@@ -96,9 +103,9 @@ const MembershipForm: React.FC<MembershipFormProps> = ({
                   placeholder={key
                     .replace("_", " ")
                     .replace(/\b\w/g, (l) => l.toUpperCase())}
-                  value={mem[key as keyof Membership]}
+                  value={cer[key as keyof Certification]}
                   onChange={(e) =>
-                    handleMembershipChange(index, key as keyof Membership, e.target.value)
+                    handleCertificationsChange(index, key as keyof Certification, e.target.value)
                   }
                 />
               </div>
@@ -107,7 +114,8 @@ const MembershipForm: React.FC<MembershipFormProps> = ({
         </div>
       ))}
     </div>
+    </SceneBox>
   );
 };
 
-export default MembershipForm;
+export default CertificationsForm;

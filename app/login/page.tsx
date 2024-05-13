@@ -3,24 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-
-const data = {
-  loginTheme: {
-    title: "Sign in to your Account",
-    desc: "Employee code provided by your Company",
-    loginLogo: "https://flowbite.s3.amazonaws.com/blocks/marketing-ui/logo.svg",
-    idHeading: "Your Email",
-    passwordHeading: "Password",
-    signInButtonHeading: "Sign in",
-    idPlaceholder: "Enter your employee code",
-  },
-  banners: {
-    topBanner:
-      "https://img.lovepik.com/background/20211022/large/lovepik-taobao-tmall-e-commerce-banner-background-image_500603827.jpg",
-    bottomBanner:
-      "https://cdn.pixabay.com/photo/2015/08/23/09/22/banner-902589_640.jpg",
-  },
-};
+import { SyncLoader } from "react-spinners";
 
 interface LoginProps {
   loginTheme: {
@@ -39,114 +22,106 @@ interface LoginProps {
 }
 
 const Login: React.FC<{ data: LoginProps }> = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [projectHash, setProjectHash] = useState("9jnxxjnp");
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (event: React.FormEvent) => {
-    event.preventDefault(); // Prevent the default form submission behavior
+  const handleLogin = async () => {
+    setLoading(true);
+    setError(false);
 
     try {
-      const response = await fetch("https://dummyjson.com/auth/login", {
+      const response = await fetch("https://pixpro.app/api/employee/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          username: "kminchelle",
-          password: "0lelplR",
-          expiresInMins: 30, // optional, defaults to 60
+          project_hash: projectHash,
+          code: code,
         }),
       });
-      const data = await response.json();
-      if (response.ok && data.token) {
-        // Store the token in localStorage
-        localStorage.setItem("token", data.token);
 
-        // Redirect to the home page or another route
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("EmployeeHash", data.data.hash);
         router.push("/projects");
+        router;
       } else {
-        // Handle errors or invalid login attempts
-        console.error("Login failed:", data.message || "Unknown error");
+        throw new Error(data.message || "Failed to login");
       }
     } catch (error) {
-      console.error("An error occurred:", error);
+      setError(true);
+      setTimeout(() => {
+        setError(false);
+      }, 2000);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <section>
-      <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
-        <a
-          href="#"
-          className="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white"
-        >
+      <div className="flex flex-col items-center px-0 py-3 mx-auto md:h-screen lg:py-0">
+        <div className="w-full md:h-64 overflow-hidden drop-shadow-md">
           <Image
-            src={data.loginTheme.loginLogo}
-            alt="logo"
-            width={300}
-            height={300}
-            className="w-20 h-20 mr-2"
+            src="https://www.spectrumspace.org.au/wp-content/uploads/2023/07/Music-Video-Project-Banner.png"
+            width={2000}
+            height={200}
+            alt="top-banner"
           />
-        </a>
-        <div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+        </div>
+        <div className="w-full bg-white mt-4 md:mt-10 rounded-lg shadow dark:border sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
             <div className="text-center pb-6">
               <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                {data.loginTheme.title}
+                Sign in to your Account
               </h1>
               <p className="text-xs pt-2 leading-tight tracking-tight text-gray-900 dark:text-white">
-                {data.loginTheme.desc}
+                Employee code provided by your Company
               </p>
             </div>
             <form className="space-y-4 md:space-y-6" onSubmit={handleLogin}>
               <div>
                 <label
-                  htmlFor="email"
+                  htmlFor="Employee_code"
                   className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
                 >
-                  {data.loginTheme.idHeading}
+                  Enter your employee code
                 </label>
                 <input
-                  type="email"
-                  name="email"
-                  id="email"
+                  type="text"
+                  name="Employee_code"
+                  id="Employee_code"
                   className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  placeholder={data.loginTheme.idPlaceholder}
+                  placeholder="Eg. demo_456"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
                 />
               </div>
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                >
-                  {data.loginTheme.passwordHeading}
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  id="password"
-                  placeholder="••••••••"
-                  className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <a
-                  href="#"
-                  className="text-xs text-gray-700 hover:underline dark:text-gray-100"
-                >
-                  *Contact your admin if credentials goes wrong
-                </a>
+
+              <div className="flex flex-col justify-between">
+                <p className="text-red-500 text-sm">
+                  {error ? "Please enter you Employee code correctly" : ""}
+                </p>
               </div>
               <button
+                onClick={handleLogin}
                 type="submit"
+                disabled={loading}
                 className="w-full text-white bg-blue-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
               >
-                {data.loginTheme.signInButtonHeading}
+                {loading ? (
+                  <div>
+                    <SyncLoader loading={loading} color="white" size={7} />
+                  </div>
+                ) : (
+                  "Login to proceed"
+                )}
               </button>
             </form>
           </div>

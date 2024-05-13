@@ -1,5 +1,5 @@
 "use client";
-import { useRouter } from "next/navigation";
+
 import {
   createContext,
   useContext,
@@ -8,6 +8,7 @@ import {
   FC,
   ReactNode,
 } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 // Define the shape of the Auth context data
 interface AuthContextType {
@@ -70,26 +71,28 @@ interface AuthProviderProps {
 }
 
 const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
+  const pathname = usePathname();
   const router = useRouter();
   const [isAuthenticated, setAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("token");
+    const checkAuth = async () => {
+      const token = localStorage.getItem("EmployeeHash");
       if (!token) {
-        router.push("/login");
-        setAuthenticated(false);
+        if (pathname !== "/login") {
+          router.push("/login");
+        }
       } else {
         setAuthenticated(true);
-        router.push("/projects");
+        if (pathname === "/" || pathname === "/login") {
+          router.push("/projects");
+        }
       }
       setLoading(false);
     };
 
-    if (typeof window !== "undefined") {
-      checkAuth();
-    }
+    checkAuth();
   }, [router]);
 
   if (loading) {
