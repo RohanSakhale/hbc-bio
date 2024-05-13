@@ -8,41 +8,19 @@ interface Membership {
   international: boolean;
   associations: string[];
 }
-interface Doctor {
-  name: string;
-  mobile: string;
-  photo: string;
-  credentials: string;
-  designation: string;
-  hospitalName: string;
-  hospitalAddress: string;
-  location: string;
-  gender: string;
-}
 
 const MembershipForm: React.FC = () => {
-  const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [data, setData] = useState<any | null>(null);
   const [doctorHashId, setDoctorHashId] = useState<string | null>(null);
   const [employeeHashId, setEmployeeHashId] = useState<string | null>(null);
   const router = useRouter();
-  const [doctor, setDoctor] = useState<Doctor>({
-    name: "",
-    mobile: "",
-    photo: "",
-    credentials: "",
-    designation: "",
-    hospitalName: "",
-    hospitalAddress: "",
-    location: "",
-    gender: "",
-  });
 
   useEffect(() => {
     const doctorHash = localStorage.getItem("doctorHash");
     const employeeHash = localStorage.getItem("EmployeeHash");
-
     setDoctorHashId(doctorHash);
     setEmployeeHashId(employeeHash);
+
     if (doctorHash) {
       fetch(
         `https://pixpro.app/api/employee/${employeeHash}/contact/${doctorHash}`,
@@ -53,16 +31,14 @@ const MembershipForm: React.FC = () => {
           },
           body: JSON.stringify({
             id: doctorHash,
-            name: "Rohan Sakhale",
-            mobile: "8976379661",
-            data: { doctor: [] },
+            data: [],
           }),
         }
       )
         .then((response) => response.json())
-        .then((data) => {
-          if (data && data.data) {
-            setDoctor(data.data.doctor[0]);
+        .then((responseData) => {
+          if (responseData && responseData.data) {
+            setData(responseData.data);
           }
         })
         .catch((error) => console.error("Error fetching doctor data:", error));
@@ -70,33 +46,25 @@ const MembershipForm: React.FC = () => {
   }, []);
 
   const addMembership = () => {
-    setMemberships([
-      ...memberships,
-      { international: false, associations: [] },
-    ]);
+    setData({
+      ...data,
+      memberships: [
+        ...(data?.memberships || []),
+        { international: false, associations: [] },
+      ],
+    });
   };
 
   const addAssociation = (index: number) => {
-    const updatedMemberships = memberships.map((membership, memIndex) => {
-      if (index === memIndex) {
-        return {
-          ...membership,
-          associations: [...membership.associations, ""],
-        };
-      }
-      return membership;
-    });
-    setMemberships(updatedMemberships);
+    const updatedMemberships = [...data.memberships];
+    updatedMemberships[index].associations.push("");
+    setData({ ...data, memberships: updatedMemberships });
   };
 
   const handleInternationalChange = (index: number, value: boolean) => {
-    const updatedMemberships = memberships.map((membership, memIndex) => {
-      if (memIndex === index) {
-        return { ...membership, international: value };
-      }
-      return membership;
-    });
-    setMemberships(updatedMemberships);
+    const updatedMemberships = [...data.memberships];
+    updatedMemberships[index].international = value;
+    setData({ ...data, memberships: updatedMemberships });
   };
 
   const handleAssociationChange = (
@@ -104,39 +72,21 @@ const MembershipForm: React.FC = () => {
     assocIndex: number,
     value: string
   ) => {
-    const updatedMemberships = memberships.map((membership, memIndex) => {
-      if (memIndex === index) {
-        const newAssociations = [...membership.associations];
-        newAssociations[assocIndex] = value;
-        return { ...membership, associations: newAssociations };
-      }
-      return membership;
-    });
-    setMemberships(updatedMemberships);
+    const updatedMemberships = [...data.memberships];
+    updatedMemberships[index].associations[assocIndex] = value;
+    setData({ ...data, memberships: updatedMemberships });
   };
 
   const removeMembership = (index: number) => {
-    setMemberships(memberships.filter((_, memIndex) => memIndex !== index));
+    const updatedMemberships = [...data.memberships];
+    updatedMemberships.splice(index, 1);
+    setData({ ...data, memberships: updatedMemberships });
   };
 
   const removeAssociation = (index: number, assocIdx: number) => {
-    const updatedMemberships = memberships.map((membership, memIndex) => {
-      if (memIndex === index) {
-        return {
-          ...membership,
-          associations: membership.associations.filter(
-            (_, idx) => idx !== assocIdx
-          ),
-        };
-      }
-      return membership;
-    });
-    setMemberships(updatedMemberships);
-  };
-
-  const arrayData = {
-    doctor,
-    memberships,
+    const updatedMemberships = [...data.memberships];
+    updatedMemberships[index].associations.splice(assocIdx, 1);
+    setData({ ...data, memberships: updatedMemberships });
   };
 
   const handleSubmit = async () => {
@@ -145,13 +95,18 @@ const MembershipForm: React.FC = () => {
       return;
     }
 
-    const apiUrl = `https://pixpro.app/api/employee/${employeeHashId}/contact/${doctorHashId}`;
     const bodyData = {
       id: doctorHashId,
-      name: doctor.name,
-      mobile: doctor.mobile,
-      data: JSON.stringify(arrayData),
+      data: {
+        ...data,
+        memberships: data.memberships.map((membership: Membership) => ({
+          international: membership.international,
+          associations: membership.associations,
+        })),
+      },
     };
+    console.log(bodyData);
+    const apiUrl = `https://pixpro.app/api/employee/${employeeHashId}/contact/save`;
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -161,11 +116,13 @@ const MembershipForm: React.FC = () => {
         body: JSON.stringify(bodyData),
       });
       const responseData = await response.json();
-      localStorage.setItem("data", JSON.stringify(memberships));
+      localStorage.setItem("data", JSON.stringify(data.memberships));
+      console.log("dataResponse", responseData);
     } catch (error) {
       console.error("Error submitting form:", error);
     }
   };
+
   return (
     <SceneBox>
       <div className="flex flex-col pt-6 pb-8 mb-4">
@@ -175,7 +132,7 @@ const MembershipForm: React.FC = () => {
         >
           Add Membership
         </button>
-        {memberships.map((membership, index) => (
+        {data?.memberships.map((membership: Membership, index: number) => (
           <div key={index} className="mt-4 bg-gray-100 p-2 rounded-md relative">
             <div className="flex space-x-2">
               <input
@@ -187,30 +144,32 @@ const MembershipForm: React.FC = () => {
               />{" "}
               <p>International</p>
             </div>
-            {membership.associations.map((association, assocIdx) => (
-              <div key={assocIdx} className="mt-4">
-                <div className="flex justify-between w-full">
-                  <label htmlFor={`${index}-${assocIdx}`}>{`Enter association ${
-                    assocIdx + 1
-                  }`}</label>
-                  <button
-                    onClick={() => removeAssociation(index, assocIdx)}
-                    className="text-red-500"
-                  >
-                    Remove
-                  </button>
+            {membership.associations.map(
+              (association: string, assocIdx: number) => (
+                <div key={assocIdx} className="mt-4">
+                  <div className="flex justify-between w-full">
+                    <label
+                      htmlFor={`${index}-${assocIdx}`}
+                    >{`Enter association ${assocIdx + 1}`}</label>
+                    <button
+                      onClick={() => removeAssociation(index, assocIdx)}
+                      className="text-red-500"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={association}
+                    id={`${index}-${assocIdx}`}
+                    className="bg-gray-50 border mt-1 border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    onChange={(e) =>
+                      handleAssociationChange(index, assocIdx, e.target.value)
+                    }
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={association}
-                  id={`${index}-${assocIdx}`}
-                  className="bg-gray-50 border mt-1 border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  onChange={(e) =>
-                    handleAssociationChange(index, assocIdx, e.target.value)
-                  }
-                />
-              </div>
-            ))}
+              )
+            )}
             <button
               onClick={() => addAssociation(index)}
               className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-2"
@@ -239,11 +198,11 @@ const MembershipForm: React.FC = () => {
           <button
             onClick={async () => {
               await handleSubmit();
-              router.push(`/doctor/${doctorHashId}/personal`);
+              // router.push(`/doctor/${doctorHashId}/personal`);
             }}
             className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
           >
-            {memberships.length === 0 ? "Skip" : "Next"}
+            {data?.memberships.length === 0 ? "Skip" : "Next"}
           </button>
         </div>
       </div>

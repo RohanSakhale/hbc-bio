@@ -80,7 +80,7 @@ const EducationForm = () => {
       return;
     }
 
-    const apiUrl = `https://pixpro.app/api/employee/${employeeHashId}/contact/${doctorHashId}`;
+    const apiUrl = `https://pixpro.app/api/employee/${employeeHashId}/contact/save`;
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -89,7 +89,9 @@ const EducationForm = () => {
         },
         body: JSON.stringify({
           id: doctorHashId,
-          data: { educations },
+          name: "Rohan Sakhale",
+          mobile: "8976379661",
+          data: [educations],
         }),
       });
 
@@ -98,7 +100,7 @@ const EducationForm = () => {
       }
 
       const data = await response.json(); // Convert response payload to JSON
-      console.log("Response data:", educations);
+      console.log("Response data:", data);
       localStorage.setItem("data", JSON.stringify({ educations }));
     } catch (error) {
       console.error("Error submitting experience:", error);
