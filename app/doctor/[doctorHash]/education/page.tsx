@@ -1,111 +1,209 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import SceneBox from "@/components/SceneBox";
 import { useRouter } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface EducationEntry {
   degree: string;
   field_specialization: string;
   college_university_name: string;
   location: string;
-  passing_year: string;
+  passing_year: string | null; // Update to handle null value for DatePicker
 }
 
-interface MainJsonType {
-  educations: EducationEntry[];
+interface ResponseData {
+  contact: {
+    mobile?: string;
+  };
+  data: {
+    doctor: {};
+    educations: EducationEntry[];
+    certifications: [];
+    experience: {};
+    memberships: [];
+    specializations: [];
+    achievements: []
+  };
 }
 
 const EducationForm = () => {
-  const [educations, setEducations] = useState<EducationEntry[]>([]);
-  const [doctorHashId, setDoctorId] = useState<string | null>(null);
-  const [employeeHashId, setEmployeeId] = useState<string | null>(null);
+  const [responseData, setResponseData] = useState<ResponseData>({
+    contact: {},
+    data: {
+      doctor: {},
+      educations: [],
+      certifications: [],
+      experience: {},
+      memberships: [],
+      specializations: [],
+      achievements: [],
+    },
+  });
+  const [doctorHashId, setDoctorHashId] = useState<string | null>(null);
+  const [employeeHashId, setEmployeeHashId] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true); // State to track loading status
   const router = useRouter();
 
   useEffect(() => {
-    setDoctorId(localStorage.getItem("doctorHash"));
-    setEmployeeId(localStorage.getItem("EmployeeHash"));
+    const doctorHash = localStorage.getItem("doctorHash");
+    const employeeHash = localStorage.getItem("EmployeeHash");
 
-    const fetchEducations = async () => {
-      if (doctorHashId && employeeHashId) {
-        try {
-          const response = await fetch(
-            `https://pixpro.app/api/employee/${employeeHashId}/contact/${doctorHashId}/educations`
-          );
-          const data = await response.json();
-          setEducations(data.educations || []);
-        } catch (error) {
-          console.error("Error fetching education data:", error);
+    setDoctorHashId(doctorHash);
+    setEmployeeHashId(employeeHash);
+
+    if (doctorHash && employeeHash) {
+      fetch(
+        `https://pixpro.app/api/employee/${employeeHash}/contact/${doctorHash}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: doctorHash,
+            name: "Rohan Sakhale",
+            mobile: "8976379661",
+            data: { doctor: [] },
+          }),
         }
-      }
-    };
+      )
+        .then((response) => response.json())
+        .then((responseData) => {
+          if (responseData?.data) {
+            const fetchedData = responseData.data[0] || responseData.data;
 
-    fetchEducations();
-  }, [doctorHashId, employeeHashId]);
+            const formattedData = {
+              doctor: {},
+              educations: fetchedData.educations || [],
+              certifications: fetchedData.certifications || [],
+              experience: fetchedData.experience || {},
+              memberships: fetchedData.memberships || [],
+              specializations: fetchedData.specializations || [],
+              achievements: fetchedData.achievements || [],
+            };
+
+            setResponseData({
+              contact: responseData.contact,
+              data: formattedData,
+            });
+          }
+        })
+        .catch((error) =>
+          console.error("Error fetching education data:", error)
+        )
+        .finally(() => setLoading(false));
+    }
+  }, []);
 
   const addEducation = () => {
-    setEducations([
-      ...educations,
-      {
-        degree: "",
-        field_specialization: "",
-        college_university_name: "",
-        location: "",
-        passing_year: "",
+    setResponseData((prevData) => ({
+      ...prevData,
+      data: {
+        ...prevData.data,
+        educations: [
+          ...prevData.data.educations,
+          {
+            degree: "",
+            field_specialization: "",
+            college_university_name: "",
+            location: "",
+            passing_year: null,
+          },
+        ],
       },
-    ]);
+    }));
   };
 
   const handleEducationChange = (
     index: number,
     field: keyof EducationEntry,
-    value: string
+    value: any
   ) => {
-    const updatedEducations = educations.map((edu, eduIndex) => {
-      if (index === eduIndex) {
-        return { ...edu, [field]: value };
-      }
-      return edu;
+    setResponseData((prevData) => {
+      const updatedEducations = [...prevData.data.educations];
+      updatedEducations[index][field] = value;
+      return {
+        ...prevData,
+        data: { ...prevData.data, educations: updatedEducations },
+      };
     });
-    setEducations(updatedEducations);
   };
 
   const removeEducation = (index: number) => {
-    setEducations(educations.filter((_, eduIndex) => eduIndex !== index));
+    setResponseData((prevData) => {
+      const updatedEducations = [...prevData.data.educations];
+      updatedEducations.splice(index, 1);
+      return {
+        ...prevData,
+        data: { ...prevData.data, educations: updatedEducations },
+      };
+    });
   };
 
   const handleSubmit = async () => {
-    if (!doctorHashId) {
-      console.error("No doctor hash ID found");
+    if (!doctorHashId || !employeeHashId) {
+      console.error("No doctor or employee hash ID found");
       return;
     }
 
-    const apiUrl = `https://pixpro.app/api/employee/${employeeHashId}/contact/save`;
+    let currentData;
     try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: doctorHashId,
-          name: "Rohan Sakhale",
-          mobile: "8976379661",
-          data: [educations],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json(); // Convert response payload to JSON
-      console.log("Response data:", data);
-      localStorage.setItem("data", JSON.stringify({ educations }));
+      const response = await fetch(
+        `https://pixpro.app/api/employee/${employeeHashId}/contact/${doctorHashId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: doctorHashId,
+          }),
+        }
+      );
+      currentData = await response.json();
     } catch (error) {
-      console.error("Error submitting experience:", error);
+      console.error("Error fetching current data:", error);
+      return;
+    }
+
+    if (currentData?.data) {
+      const fetchedData = currentData.data[0] || currentData.data;
+
+      const updatedData = {
+        ...fetchedData,
+        educations: responseData.data.educations,
+      };
+
+      try {
+        await fetch(
+          `https://pixpro.app/api/employee/${employeeHashId}/contact/save`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: doctorHashId,
+              mobile: responseData.contact.mobile,
+              data: updatedData,
+            }),
+          }
+        );
+        console.log("Education updated successfully.");
+      } catch (error) {
+        console.error("Error submitting education:", error);
+      }
     }
   };
+
+  if (loading) {
+    return (
+      <SceneBox>
+        <div className="flex justify-center items-center h-screen">
+          <div className="text-xl font-semibold">Loading...</div>
+        </div>
+      </SceneBox>
+    );
+  }
 
   return (
     <SceneBox>
@@ -116,7 +214,7 @@ const EducationForm = () => {
         >
           Add Education
         </button>
-        {educations.map((edu, index: number) => (
+        {responseData.data.educations.map((edu, index: number) => (
           <div className="mt-6" key={index}>
             <div className="flex justify-between items-center bg-gray-100 py-2 px-4">
               <div className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
@@ -141,22 +239,39 @@ const EducationForm = () => {
                       .replace("_", " ")
                       .replace(/\b\w/g, (l) => l.toUpperCase())}
                   </label>
-                  <input
-                    id={`${key}-${index}`}
-                    className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    type="text"
-                    placeholder={key
-                      .replace("_", " ")
-                      .replace(/\b\w/g, (l) => l.toUpperCase())}
-                    value={edu[key as keyof EducationEntry]}
-                    onChange={(e) =>
-                      handleEducationChange(
-                        index,
-                        key as keyof EducationEntry,
-                        e.target.value
-                      )
-                    }
-                  />
+                  {key === "passing_year" ? (
+                    <DatePicker
+                      id={`${key}-${index}`}
+                      selected={edu.passing_year ? new Date(edu.passing_year) : null}
+                      onChange={(date: Date) =>
+                        handleEducationChange(
+                          index,
+                          key as keyof EducationEntry,
+                          date.toISOString().split("T")[0]
+                        )
+                      }
+                      showYearPicker
+                      dateFormat="yyyy"
+                      className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600"
+                    />
+                  ) : (
+                    <input
+                      id={`${key}-${index}`}
+                      className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                      type="text"
+                      placeholder={key
+                        .replace("_", " ")
+                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                      value={edu[key as keyof EducationEntry] || ""}
+                      onChange={(e) =>
+                        handleEducationChange(
+                          index,
+                          key as keyof EducationEntry,
+                          e.target.value
+                        )
+                      }
+                    />
+                  )}
                 </div>
               ))}
             </form>
@@ -180,7 +295,7 @@ const EducationForm = () => {
             }}
             className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
           >
-            {educations.length === 0 ? "Skip" : "Next"}
+            {responseData.data.educations.length === 0 ? "Skip" : "Next"}
           </button>
         </div>
       </div>

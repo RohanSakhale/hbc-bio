@@ -41,6 +41,8 @@ const SceneBox: React.FC<SceneBoxProps> = ({ children }) => {
           { name: "experience", label: "Experience" },
           { name: "certification", label: "Certification" },
           { name: "membership", label: "Membership" },
+          { name: "specialization", label: "Specialization" },
+          { name: "achievement", label: "Achievement" },
         ].map((tab) => (
           <Link
             key={tab.name}

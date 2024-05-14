@@ -1,90 +1,212 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import SceneBox from "@/components/SceneBox"; // Ensure the path to SceneBox is correct
+import SceneBox from "@/components/SceneBox";
 import { useRouter } from "next/navigation";
+// @ts-ignore
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import ImageCropper from "@/components/ImageCropper"; // Ensure the path to ImageCropper is correct
 
-// Define the shape of the certificate object
 interface Certification {
   CertificateName: string;
   IssuingOrganization: string;
-  Year: string;
+  Year: string | null;
   CertificateImage: string;
 }
 
+interface ResponseData {
+  contact: {
+    mobile?: string;
+  };
+  data: {
+    doctor: {};
+    educations: [];
+    certifications: Certification[];
+    experience: {};
+    memberships: any[];
+    specializations: any[];
+    achievements: any[],
+  };
+}
+
 const CertificationsForm = () => {
-  const [certifications, setCertifications] = useState<Certification[]>([]);
-  const [doctorId, setDoctorId] = useState<string | null>(null);
-  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [responseData, setResponseData] = useState<ResponseData>({
+    contact: {},
+    data: {
+      doctor: {},
+      educations: [],
+      certifications: [],
+      experience: {},
+      memberships: [],
+      specializations: [],
+      achievements: [],
+    },
+  });
+  const [doctorHashId, setDoctorHashId] = useState<string | null>(null);
+  const [employeeHashId, setEmployeeHashId] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true); // State to track loading status
+  const [cropperOpen, setCropperOpen] = useState<number | null>(null); // State to track which cropper is open
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null); // State to hold the image to crop
+  const [currentCertIndex, setCurrentCertIndex] = useState<number | null>(null); // State to track current certification index for image cropping
   const router = useRouter();
 
-  // Fetch initial certifications data from the API
+  // Fetch initial data from the API
   useEffect(() => {
     const doctorHash = localStorage.getItem("doctorHash");
     const employeeHash = localStorage.getItem("EmployeeHash");
-    setDoctorId(doctorHash);
-    setEmployeeId(employeeHash);
+    setDoctorHashId(doctorHash);
+    setEmployeeHashId(employeeHash);
 
-    const fetchCertifications = async () => {
-      if (doctorHash && employeeHash) {
-        try {
-          const response = await fetch(
-            `https://pixpro.app/api/employee/${employeeHash}/contact/${doctorHash}/certifications`
-          );
-          const data = await response.json();
-          setCertifications(data.certifications || []);
-        } catch (error) {
-          console.error("Error fetching certification data:", error);
+    if (doctorHash && employeeHash) {
+      fetch(
+        `https://pixpro.app/api/employee/${employeeHash}/contact/${doctorHash}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: doctorHash, data: [] }),
         }
-      }
-    };
+      )
+        .then((response) => response.json())
+        .then((responseData) => {
+          if (responseData?.data) {
+            const fetchedData = responseData.data[0] || responseData.data;
 
-    fetchCertifications();
+            const formattedData = {
+              doctor: {},
+              educations: [],
+              certifications: fetchedData.certifications || [],
+              experience: {},
+              memberships: fetchedData.memberships || [],
+              specializations: fetchedData.specializations || [],
+              achievements: fetchedData.achievements || [],
+            };
+
+            setResponseData({
+              contact: responseData.contact,
+              // @ts-ignore
+              data: formattedData,
+            });
+          }
+        })
+        .catch((error) => console.error("Error fetching doctor data:", error))
+        .finally(() => setLoading(false));
+    }
   }, []);
 
   // Add a new certification entry
   const addCertification = () => {
-    const newCertification: Certification = {
-      CertificateName: "",
-      IssuingOrganization: "",
-      Year: "",
-      CertificateImage: "",
-    };
-    setCertifications([...certifications, newCertification]);
+    setResponseData((prevData) => ({
+      ...prevData,
+      data: {
+        ...prevData.data,
+        certifications: [
+          ...prevData.data.certifications,
+          {
+            CertificateName: "",
+            IssuingOrganization: "",
+            Year: null,
+            CertificateImage: "",
+          },
+        ],
+      },
+    }));
   };
 
   // Handle changes in the certification fields
   const handleCertificationChange = (
     index: number,
     field: keyof Certification,
-    value: string
+    value: any
   ) => {
-    const updatedCertifications = certifications.map((certification, idx) => {
-      if (index === idx) {
-        return { ...certification, [field]: value };
-      }
-      return certification;
+    setResponseData((prevData) => {
+      const updatedCertifications = [...prevData.data.certifications];
+      updatedCertifications[index][field] = value;
+      return {
+        ...prevData,
+        data: { ...prevData.data, certifications: updatedCertifications },
+      };
     });
-    setCertifications(updatedCertifications);
   };
 
   // Remove a certification
   const removeCertification = (index: number) => {
-    setCertifications(certifications.filter((_, idx) => idx !== index));
+    setResponseData((prevData) => {
+      const updatedCertifications = [...prevData.data.certifications];
+      updatedCertifications.splice(index, 1);
+      return {
+        ...prevData,
+        data: { ...prevData.data, certifications: updatedCertifications },
+      };
+    });
+  };
+
+  // Handle image crop
+  const handleImageCrop = (croppedImageUrl: string) => {
+    if (currentCertIndex !== null) {
+      setResponseData((prevData) => {
+        const updatedCertifications = [...prevData.data.certifications];
+        updatedCertifications[currentCertIndex].CertificateImage =
+          croppedImageUrl;
+        return {
+          ...prevData,
+          data: { ...prevData.data, certifications: updatedCertifications },
+        };
+      });
+      setCropperOpen(null); // Close the cropper after cropping
+      setImageToCrop(null); // Clear the image to crop
+      setCurrentCertIndex(null); // Reset the current certification index
+    }
   };
 
   // Submit the certifications to the API
   const handleSubmit = async () => {
-    if (doctorId && employeeId) {
+    if (!doctorHashId || !employeeHashId) {
+      console.error("No doctor or employee hash ID found");
+      return;
+    }
+
+    let currentData;
+    try {
+      const response = await fetch(
+        `https://pixpro.app/api/employee/${employeeHashId}/contact/${doctorHashId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: doctorHashId,
+          }),
+        }
+      );
+      currentData = await response.json();
+    } catch (error) {
+      console.error("Error fetching current data:", error);
+      return;
+    }
+
+    if (currentData?.data) {
+      const fetchedData = currentData.data[0] || currentData.data;
+
+      const updatedData = {
+        ...fetchedData,
+        certifications: responseData.data.certifications,
+      };
+
       try {
         await fetch(
-          `https://pixpro.app/api/employee/${employeeId}/contact/${doctorId}/certifications`,
+          `https://pixpro.app/api/employee/${employeeHashId}/contact/save`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ certifications }),
+            body: JSON.stringify({
+              id: doctorHashId,
+              mobile: responseData.contact.mobile,
+              data: updatedData,
+            }),
           }
         );
         console.log("Certifications updated successfully.");
@@ -93,6 +215,16 @@ const CertificationsForm = () => {
       }
     }
   };
+
+  if (loading) {
+    return (
+      <SceneBox>
+        <div className="flex justify-center items-center h-screen">
+          <div className="text-xl font-semibold">Loading...</div>
+        </div>
+      </SceneBox>
+    );
+  }
 
   return (
     <SceneBox>
@@ -103,7 +235,7 @@ const CertificationsForm = () => {
         >
           Add Certification
         </button>
-        {certifications.map((cer, index) => (
+        {responseData.data.certifications.map((certification, index) => (
           <div className="mt-6" key={index}>
             <div className="flex justify-between items-center bg-gray-100 py-2 px-4">
               <div className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
@@ -117,38 +249,129 @@ const CertificationsForm = () => {
               </button>
             </div>
             <form className="flex flex-wrap">
-              {Object.keys(cer).map((key) => (
-                <div key={key} className="w-full lg:w-1/4 lg:ml-4 mt-3">
-                  <label
-                    htmlFor={`${key}-${index}`}
-                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >
-                    {key
-                      .replace(/([A-Z])/g, " $1")
-                      .trim()
-                      .replace("Certificate", "")
-                      .replace("Name", "Name:")}
-                  </label>
-                  <input
-                    id={`${key}-${index}`}
-                    type="text"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    placeholder={`Enter ${key
-                      .replace(/([A-Z])/g, " $1")
-                      .trim()
-                      .replace("Certificate", "")
-                      .replace("Name", "Name:")}`}
-                    value={cer[key as keyof Certification]}
-                    onChange={(e) =>
-                      handleCertificationChange(
-                        index,
-                        key as keyof Certification,
-                        e.target.value
-                      )
+              <div className="w-full lg:w-1/4 lg:ml-4 mt-3">
+                <label
+                  htmlFor={`CertificateName-${index}`}
+                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  Certificate Name
+                </label>
+                <input
+                  id={`CertificateName-${index}`}
+                  type="text"
+                  className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  placeholder="Enter Certificate Name"
+                  value={certification.CertificateName}
+                  onChange={(e) =>
+                    handleCertificationChange(
+                      index,
+                      "CertificateName",
+                      e.target.value
+                    )
+                  }
+                />
+              </div>
+              <div className="w-full lg:w-1/4 lg:ml-4 mt-3">
+                <label
+                  htmlFor={`IssuingOrganization-${index}`}
+                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  Issuing Organization
+                </label>
+                <input
+                  id={`IssuingOrganization-${index}`}
+                  type="text"
+                  className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  placeholder="Enter Issuing Organization"
+                  value={certification.IssuingOrganization}
+                  onChange={(e) =>
+                    handleCertificationChange(
+                      index,
+                      "IssuingOrganization",
+                      e.target.value
+                    )
+                  }
+                />
+              </div>
+              <div className="w-full lg:w-1/4 lg:ml-4 mt-3">
+                <label
+                  htmlFor={`Year-${index}`}
+                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  Year
+                </label>
+                <DatePicker
+                  id={`Year-${index}`}
+                  selected={
+                    certification.Year ? new Date(certification.Year) : null
+                  }
+                  onChange={(date: Date) =>
+                    handleCertificationChange(
+                      index,
+                      "Year",
+                      date.toISOString().split("T")[0]
+                    )
+                  }
+                  showYearPicker
+                  dateFormat="yyyy"
+                  className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                />
+              </div>
+              <div className="w-full lg:w-1/4 lg:ml-4 mt-3">
+                <label
+                  htmlFor={`CertificateImage-${index}`}
+                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  Certificate Image
+                </label>
+                <div
+                  className="w-24 h-24 overflow-hidden cursor-pointer border border-gray-300"
+                  onClick={() => {
+                    setCurrentCertIndex(index);
+                    setCropperOpen(index);
+                  }}
+                >
+                  {certification.CertificateImage ? (
+                    <img
+                      src={certification.CertificateImage}
+                      alt="Certificate"
+                      className="w-full h-full object-cover object-center"
+                    />
+                  ) : (
+                    <img
+                      src="https://via.placeholder.com/150"
+                      alt="Placeholder"
+                      className="w-full h-full object-cover object-center"
+                    />
+                  )}
+                </div>
+                {cropperOpen === index && (
+                  <ImageCropper
+                    key={`CertificateImage-${index}`}
+                    onCrop={(croppedImageUrl) =>
+                      handleImageCrop(croppedImageUrl)
                     }
                   />
-                </div>
-              ))}
+                )}
+                <input
+                  type="file"
+                  id={`CertificateImage-${index}`}
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        setImageToCrop(reader.result as string);
+                        setCurrentCertIndex(index);
+                        setCropperOpen(index);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </div>
             </form>
           </div>
         ))}
@@ -157,20 +380,20 @@ const CertificationsForm = () => {
           <button
             onClick={async () => {
               await handleSubmit();
-              router.push(`/doctor/${doctorId}/experience`);
+              router.push(`/doctor/${doctorHashId}/experience`);
             }}
             className="bg-red-500 rounded-md mt-6 text-white text-xl px-4 py-2"
           >
-            back
+            Back
           </button>
           <button
             onClick={async () => {
               await handleSubmit();
-              router.push(`/doctor/${doctorId}/membership`);
+              router.push(`/doctor/${doctorHashId}/membership`);
             }}
             className="bg-green-500 rounded-md mt-6 text-white text-xl px-4 py-2"
           >
-            {certifications.length === 0 ? "Skip" : "Next"}
+            {responseData.data.certifications.length === 0 ? "Skip" : "Next"}
           </button>
         </div>
       </div>
